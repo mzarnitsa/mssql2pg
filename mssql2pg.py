@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import binascii
 import re
 import codecs
-
+import getpass
 
 class MsSql2Pg:
     def __init__(self):
@@ -33,7 +33,8 @@ Produces .sql script that can be executed with psql.
         parser.add_argument('host_name', help='SQL Server host name')
         parser.add_argument('database_name', help='Source database name')
         parser.add_argument('login_name', help='Login name')
-        parser.add_argument('password', help='Password for the login_name')
+
+        parser.add_argument('-p', '--password', dest='password', help='Password for the login_name')
 
         parser.add_argument('-d', '--destination-database', dest='destination_database', default='',
                             help='If not provided, destination database name will be the same as source.')
@@ -53,6 +54,9 @@ Produces .sql script that can be executed with psql.
                                  ' If not provided, all schemas will be processed.\n')
 
         args = parser.parse_args()
+
+        if args.password is None:
+            args.password = getpass.getpass('Password:')
 
         connection_string = 'mssql+pymssql://{}:{}@{}/{}?charset=utf8'.format(
             args.login_name, args.password, args.host_name, args.database_name)
