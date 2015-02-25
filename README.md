@@ -18,9 +18,10 @@ Database conversion script from MS SQL Server to PostgreSQL.
 
 ##Automatically Generated Usage Message
 ```
-usage: mssql2pg.py [-h] [-d DESTINATION_DATABASE] [-f OUTPUT_FILE_NAME] [-u]
-                   [-n RECORD_COUNT] [-x EXCLUDE_SCHEMAS]
-                   host_name database_name login_name password
+usage: mssql2pg.py [-h] [-p PASSWORD] [-d DESTINATION_DATABASE]
+                   [-f OUTPUT_FILE_NAME] [-u] [-n RECORD_COUNT]
+                   [-x EXCLUDE_SCHEMAS]
+                   host_name database_name login_name
 
 Convert Microsoft SQL Server database into PostgreSQL. Produces .sql script
 that can be executed with psql.
@@ -29,23 +30,24 @@ positional arguments:
   host_name             SQL Server host name
   database_name         Source database name
   login_name            Login name
-  password              Password for the login_name
 
 optional arguments:
-  -h, —help            show this help message and exit
-  -d DESTINATION_DATABASE, —destination-database DESTINATION_DATABASE
+  -h, --help            show this help message and exit
+  -p PASSWORD, --password PASSWORD
+                        Password for the login_name
+  -d DESTINATION_DATABASE, --destination-database DESTINATION_DATABASE
                         If not provided, destination database name will be the
                         same as source.
-  -f OUTPUT_FILE_NAME, —file OUTPUT_FILE_NAME
+  -f OUTPUT_FILE_NAME, --file OUTPUT_FILE_NAME
                         If not provided, script will be printed to standard
                         output.
-  -u, —underscore      Convert CamelCase into underscored_identifiers
+  -u, --underscore      Convert CamelCase into underscored_identifiers
                         (schemas, tables and columns).
-  -n RECORD_COUNT, —limit_records RECORD_COUNT
+  -n RECORD_COUNT, --limit_records RECORD_COUNT
                         For test runs, process only provided number of records
                         per table. WARNING: foreign keys may not import
                         properly.
-  -x EXCLUDE_SCHEMAS, —exclude-schemas EXCLUDE_SCHEMAS
+  -x EXCLUDE_SCHEMAS, --exclude-schemas EXCLUDE_SCHEMAS
                         Comma separated (no spaces) list of schemas that will
                         be excluded from export. If not provided, all schemas
                         will be processed.
