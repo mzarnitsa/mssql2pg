@@ -58,7 +58,7 @@ Produces .sql script that can be executed with psql.
         if args.password is None:
             args.password = getpass.getpass('Password:')
 
-        connection_string = 'mssql+pymssql://{}:{}@{}/{}?charset=utf8'.format(
+        connection_string = 'mssql+pymssql://{}:{}@{}/{}'.format(
             args.login_name, args.password, args.host_name, args.database_name)
         engine = create_engine(connection_string)
 
@@ -82,7 +82,12 @@ Produces .sql script that can be executed with psql.
         self.read_command_line_params()
 
         if self.param_output_file is not None:
-            self.param_output_file = codecs.open(self.param_output_file, 'w', 'utf-8')
+            try:
+                file_name = self.param_output_file
+                self.param_output_file = codecs.open(self.param_output_file, 'w', 'utf-8')
+            except Exception as e:
+                raise SystemExit('Error opening file {}: {}'.format(file_name, e))
+
         try:
             try:
                 self.output_progress('reading schemas')
@@ -267,14 +272,17 @@ Produces .sql script that can be executed with psql.
     def read_schemas(self):
         excluded_schemas = self.param_exclude_schemas + ['dbo']
 
-        r = self.param_sql_session.execute("""
-SELECT SCHEMA_NAME
-FROM INFORMATION_SCHEMA.SCHEMATA s
-WHERE exists(SELECT 1
-             FROM INFORMATION_SCHEMA.TABLES
-             WHERE TABLE_SCHEMA = s.SCHEMA_NAME)
-ORDER BY SCHEMA_NAME
-        """)
+        try:
+            r = self.param_sql_session.execute("""
+    SELECT SCHEMA_NAME
+    FROM INFORMATION_SCHEMA.SCHEMATA s
+    WHERE exists(SELECT 1
+                 FROM INFORMATION_SCHEMA.TABLES
+                 WHERE TABLE_SCHEMA = s.SCHEMA_NAME)
+    ORDER BY SCHEMA_NAME
+            """)
+        except Exception as e:
+            raise SystemExit('Error connecting to database {}'.format(e.orig))
 
         result = []
         for row in r:
