@@ -96,6 +96,8 @@ Produces .sql script that can be executed with psql.
                 self.tables = self.read_tables()
                 self.output_progress('reading columns')
                 self.columns = self.read_columns()
+                self.output_progress('reading computed columns')
+                self.read_computed_columns(self.columns)
                 self.output_progress('reading identity columns')
                 self.sequences = self.read_identity_columns()
                 self.output_progress('reading primary, unique key constraints')
@@ -356,6 +358,22 @@ ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION
 
         return result
 
+    def read_computed_columns(self, columns):
+        r = self.param_sql_session.execute("""
+SELECT S.NAME TABLE_SCHEMA, T.NAME TABLE_NAME, C.NAME COLUMN_NAME, C.DEFINITION
+FROM SYS.COMPUTED_COLUMNS C
+INNER JOIN SYS.TABLES T
+  ON T.OBJECT_ID = C.OBJECT_ID
+INNER JOIN SYS.SCHEMAS S
+  ON S.SCHEMA_ID = T.SCHEMA_ID
+        """)
+
+        for row in r:
+            table_columns = columns[self.translate_table_name(row["TABLE_SCHEMA"], row["TABLE_NAME"])]
+            for column in table_columns:
+                if column['name'] == row['COLUMN_NAME']:
+                    column['computed'] = row['DEFINITION']
+
     def read_constraints_pk_uk(self):
         r = self.param_sql_session.execute("""
 SELECT u.TABLE_SCHEMA, u.TABLE_NAME, u.COLUMN_NAME, c.CONSTRAINT_TYPE
@@ -598,11 +616,12 @@ CREATE EXTENSION "uuid-ossp";
             else:
                 default_constraint = 'DEFAULT {}'.format(column['translated_default'])
 
-            column_definition = '{name} {type} {nullable} {default}'.format(
+            column_definition = '{name} {type} {nullable} {default}{computed}'.format(
                 name=column['translated_name'],
                 type=column['translated_type'],
                 nullable=nullable,
-                default=default_constraint
+                default=default_constraint,
+                computed='' if 'computed' not in column else ' /* computed column: {}*/'.format(column['computed']),
             )
 
             column_definition = '    ' + column_definition.strip()
