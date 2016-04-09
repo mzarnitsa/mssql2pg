@@ -141,10 +141,13 @@ Produces .sql script that can be executed with psql.
     def underscore(self, name):
         result = name
 
-        if self.param_underscore_identifiers:
-            result = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', result)
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        result = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
-        return result.lower()
+        while result.find('__') > 0:
+            result = result.replace('__', '_')
+
+        return result
 
     def translate_a_name(self, name):
         #64 is default identifier limit in PostgreSQL
@@ -156,7 +159,10 @@ Produces .sql script that can be executed with psql.
         ):
             result = '"{}"'.format(result[0:64-2])
         else:
-            result = self.underscore(result).lower()[0:64]
+            if self.param_underscore_identifiers:
+                result = self.underscore(result)[0:64]
+            else:
+                result = result[0:64]
 
         return result
 
@@ -187,7 +193,7 @@ Produces .sql script that can be executed with psql.
             result = 'TEXT'
         elif column_type == 'bit':
             result = 'BOOLEAN'
-        elif column_type == 'datetime':
+        elif column_type == 'datetime' or column_type == 'smalldatetime':
             result = 'TIMESTAMP'
         elif column_type == 'uniqueidentifier':
             result = 'UUID'
@@ -284,6 +290,7 @@ Produces .sql script that can be executed with psql.
     ORDER BY SCHEMA_NAME
             """)
         except Exception as e:
+            print(e)
             raise SystemExit('Error connecting to database {}'.format(e.orig))
 
         result = []
