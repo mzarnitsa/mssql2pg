@@ -545,10 +545,17 @@ ORDER BY 1, 2, 3
         for row in r:
             if row['TABLE_SCHEMA'] not in self.param_exclude_schemas:
                 table_name = self.translate_table_name(row["TABLE_SCHEMA"], row["TABLE_NAME"])
+
+                if table_name.endswith('"'):
+                    sequence_name = '{}_seq"'.format(table_name[0:len(table_name)-1])
+                else:
+                    sequence_name = '{}_seq'.format(table_name)
+
                 sequence = dict(
                     original_column_name=row["COLUMN_NAME"],
                     column_name=self.translate_a_name(row["COLUMN_NAME"]),
                     max_value=0,
+                    sequence_name=sequence_name,
                 )
 
                 result[table_name] = sequence
@@ -605,6 +612,7 @@ CREATE EXTENSION "uuid-ossp";
     def output_table_columns(self, table_name, table_columns):
         if table_name in self.sequences:
             sequence_column = self.sequences[table_name]['column_name']
+            sequence_name = self.sequences[table_name]['sequence_name']
         else:
             sequence_column = None
 
@@ -617,7 +625,7 @@ CREATE EXTENSION "uuid-ossp";
 
             if column['translated_default'] is None:
                 if sequence_column == column['translated_name']:
-                    default_constraint = "DEFAULT nextval('{}_seq')".format(table_name)
+                    default_constraint = "DEFAULT nextval('{}')".format(sequence_name)
                 else:
                     default_constraint = ''
             else:
@@ -742,7 +750,7 @@ CREATE EXTENSION "uuid-ossp";
             self.output_section('CREATING SEQUENCES')
 
         for sequence in self.sequences:
-            sequence_definition = 'CREATE SEQUENCE {}_seq;'.format(sequence)
+            sequence_definition = 'CREATE SEQUENCE {};'.format(self.sequences[sequence]['sequence_name'])
 
             self.write_string(sequence_definition)
 
@@ -752,7 +760,7 @@ CREATE EXTENSION "uuid-ossp";
 
         for sequence in self.sequences:
             s = self.sequences[sequence]
-            sequence_definition = 'ALTER SEQUENCE {}_seq START WITH {};'.format(sequence, s['max_value']+1)
+            sequence_definition = 'ALTER SEQUENCE {} START WITH {};'.format(self.sequences[sequence]['sequence_name'], s['max_value']+1)
 
             self.write_string(sequence_definition)
 
