@@ -506,6 +506,12 @@ ORDER BY t.name, ind.name, ind.index_id, ic.index_column_id
 
                     table_name = self.translate_table_name(row["TABLE_SCHEMA"], row["TABLE_NAME"])
                     index_name = self.translate_a_name(row['TABLE_NAME'])
+                    if index_name.startswith('"'):
+                        index_name = '"index_{}'.format(index_name[1:])
+                    else:
+                        index_name = 'index_{}'.format(index_name)
+
+
                     if index_name in new_indexes:
                         if new_indexes[index_name] == 0:
                             new_indexes[index_name] = 2
@@ -741,7 +747,7 @@ CREATE EXTENSION "uuid-ossp";
 
         for index in self.indexes:
             index_columns = ', '.join(index['columns'])
-            index_definition = 'CREATE INDEX index_{} on {}({});'.format(index['index_name'], index['table_name'], index_columns)
+            index_definition = 'CREATE INDEX {} on {}({});'.format(index['index_name'], index['table_name'], index_columns)
 
             self.write_string(index_definition)
 
